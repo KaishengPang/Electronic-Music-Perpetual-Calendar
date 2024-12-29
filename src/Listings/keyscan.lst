@@ -1,0 +1,72 @@
+C51 COMPILER V9.54   KEYSCAN                                                               07/05/2024 16:37:32 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE KEYSCAN
+OBJECT MODULE PLACED IN .\Objects\keyscan.obj
+COMPILER INVOKED BY: F:\keil5\C51\BIN\C51.EXE keyscan.c COMPACT ROM(COMPACT) OPTIMIZE(9,SPEED) BROWSE DEBUG OBJECTEXTEND
+                    - PRINT(.\Listings\keyscan.lst) TABS(2) OBJECT(.\Objects\keyscan.obj)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          sbit KeyPort0 = P2 ^ 4;
+   3          sbit KeyPort1 = P2 ^ 5;
+   4          sbit KeyPort2 = P2 ^ 6;
+   5          sbit KeyPort3 = P2 ^ 7;
+   6          #define uchar unsigned char
+   7          void Delay5Ms();
+   8          
+   9          // 按键检测，仅支持单点，不支持连点，多点。返回键值1-4
+  10          uchar key_scan()
+  11          {
+  12   1          uchar KeyV;
+  13   1          KeyPort0 = 1;
+  14   1          KeyPort1 = 1;
+  15   1          KeyPort2 = 1;
+  16   1          KeyPort3 = 1;
+  17   1          if (KeyPort0 == 0 || KeyPort1 == 0 || KeyPort2 == 0 || KeyPort3 == 0)
+  18   1          {
+  19   2              Delay5Ms();
+  20   2              if (KeyPort0 == 0)
+  21   2              {
+  22   3                  KeyV = 1;
+  23   3              }
+  24   2              else if (KeyPort1 == 0)
+  25   2              {
+  26   3                  KeyV = 2;
+  27   3              }
+  28   2              else if (KeyPort2 == 0)
+  29   2              {
+  30   3                  KeyV = 3;
+  31   3              }
+  32   2              else if (KeyPort3 == 0)
+  33   2              {
+  34   3                  KeyV = 4;
+  35   3              }
+  36   2              else
+  37   2              {
+  38   3                  KeyV = 0;
+  39   3              }
+  40   2      
+  41   2              if (KeyV != 0)
+  42   2                  while (KeyPort0 == 0 || KeyPort1 == 0 || KeyPort2 == 0 || KeyPort3 == 0);
+  43   2                  Delay5Ms();
+  44   2          }
+  45   1          return KeyV;
+  46   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     92    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----       1
+   DATA SIZE        =   ----    ----
+C51 COMPILER V9.54   KEYSCAN                                                               07/05/2024 16:37:32 PAGE 2   
+
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

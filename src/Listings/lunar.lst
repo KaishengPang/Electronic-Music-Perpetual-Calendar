@@ -1,0 +1,231 @@
+C51 COMPILER V9.54   LUNAR                                                                 07/05/2024 16:37:32 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE LUNAR
+OBJECT MODULE PLACED IN .\Objects\lunar.obj
+COMPILER INVOKED BY: F:\keil5\C51\BIN\C51.EXE lunar.c COMPACT ROM(COMPACT) OPTIMIZE(9,SPEED) BROWSE DEBUG OBJECTEXTEND P
+                    -RINT(.\Listings\lunar.lst) TABS(2) OBJECT(.\Objects\lunar.obj)
+
+line level    source
+
+   1          # include <reg52.h>
+   2          
+   3          #define uchar unsigned char
+   4          #define uint unsigned int
+   5          static unsigned int LunarCalendarDay;
+   6          
+   7          static code unsigned long LunarCalendarTable[60] = {
+   8           
+   9              0x4D4AB8,0x0D4A4C,0x0DA541,0x25AAB6,0x056A49,0x7AADBD,0x025D52,0x092D47,0x5C95BA,0x0A954E,/*2001-2010*
+             -/
+  10              0x0B4A43,0x4B5537,0x0AD54A,0x955ABF,0x04BA53,0x0A5B48,0x652BBC,0x052B50,0x0A9345,0x474AB9,/*2011-2020*
+             -/
+  11              0x06AA4C,0x0AD541,0x24DAB6,0x04B64A,0x69573D,0x0A4E51,0x0D2646,0x5E933A,0x0D534D,0x05AA43,/*2021-2030*
+             -/
+  12              0x36B537,0x096D4B,0xB4AEBF,0x04AD53,0x0A4D48,0x6D25BC,0x0D254F,0x0D5244,0x5DAA38,0x0B5A4C,/*2031-2040*
+             -/
+  13          
+  14          };
+  15          static code uchar jieqi[]=
+  16          { 
+  17                 0x96,0xB4,0xA5,0xB5,0xA6,0xA6,0x87,0x88,0x88,0x78,0x87,0x86,     //2000   
+  18                 0xA5,0xB3,0xA5,0xA5,0xA6,0xA6,0x88,0x88,0x88,0x78,0x87,0x87,     //2001   
+  19                 0xA5,0xB4,0x96,0xA5,0x96,0x96,0x88,0x78,0x78,0x78,0x87,0x87,     //2002   
+  20                 0x95,0xB4,0x96,0xA5,0x96,0x97,0x88,0x78,0x78,0x69,0x78,0x87,     //2003   
+  21                 0x96,0xB4,0xA5,0xB5,0xA6,0xA6,0x87,0x88,0x88,0x78,0x87,0x86,     //2004   
+  22                 0xA5,0xB3,0xA5,0xA5,0xA6,0xA6,0x88,0x88,0x88,0x78,0x87,0x87,     //2005   
+  23                 0xA5,0xB4,0x96,0xA5,0xA6,0x96,0x88,0x88,0x78,0x78,0x87,0x87,     //2006   
+  24                 0x95,0xB4,0x96,0xA5,0x96,0x97,0x88,0x78,0x78,0x69,0x78,0x87,     //2007   
+  25                 0x96,0xB4,0xA5,0xB5,0xA6,0xA6,0x87,0x88,0x87,0x78,0x87,0x86,     //2008   
+  26                 0xA5,0xB3,0xA5,0xB5,0xA6,0xA6,0x88,0x88,0x88,0x78,0x87,0x87,     //2009   
+  27                 0xA5,0xB4,0x96,0xA5,0xA6,0x96,0x88,0x88,0x78,0x78,0x87,0x87,     //2010   
+  28                 0x95,0xB4,0x96,0xA5,0x96,0x97,0x88,0x78,0x78,0x79,0x78,0x87,     //2011   
+  29                 0x96,0xB4,0xA5,0xB5,0xA5,0xA6,0x87,0x88,0x87,0x78,0x87,0x86,     //2012   
+  30                 0xA5,0xB3,0xA5,0xB5,0xA6,0xA6,0x87,0x88,0x88,0x78,0x87,0x87,     //2013   
+  31                 0xA5,0xB4,0x96,0xA5,0xA6,0x96,0x88,0x88,0x78,0x78,0x87,0x87,     //2014   
+  32                 0x95,0xB4,0x96,0xA5,0x96,0x97,0x88,0x78,0x78,0x79,0x77,0x87,     //2015   
+  33                 0x95,0xB4,0xA5,0xB4,0xA5,0xA6,0x87,0x88,0x87,0x78,0x87,0x86,     //2016   
+  34                 0xA5,0xC3,0xA5,0xB5,0xA6,0xA6,0x87,0x88,0x88,0x78,0x87,0x87,     //2017   
+  35                 0xA5,0xB4,0xA6,0xA5,0xA6,0x96,0x88,0x88,0x78,0x78,0x87,0x87,     //2018   
+  36                 0xA5,0xB4,0x96,0xA5,0x96,0x96,0x88,0x78,0x78,0x79,0x77,0x87,     //2019   
+  37                 0x95,0xB4,0xA5,0xB4,0xA5,0xA6,0x97,0x87,0x87,0x78,0x87,0x86,     //2020   
+  38                 0xA5,0xC3,0xA5,0xB5,0xA6,0xA6,0x87,0x88,0x88,0x78,0x87,0x86,     //2021   
+  39                 0xA5,0xB4,0xA5,0xA5,0xA6,0x96,0x88,0x88,0x88,0x78,0x87,0x87,     //2022   
+  40                 0xA5,0xB4,0x96,0xA5,0x96,0x96,0x88,0x78,0x78,0x79,0x77,0x87,     //2023   
+  41                 0x95,0xB4,0xA5,0xB4,0xA5,0xA6,0x97,0x87,0x87,0x78,0x87,0x96,     //2024   
+  42            
+  43          
+  44              };
+  45          
+  46          static code int MonthAdd[12] = {0,31,59,90,120,151,181,212,243,273,304,334};
+  47          
+  48          static int LunarCalendar(int year,int month,int day)
+  49          {
+  50   1          int Spring_NY,Sun_NY,StaticDayCount;
+C51 COMPILER V9.54   LUNAR                                                                 07/05/2024 16:37:32 PAGE 2   
+
+  51   1          int index,flag;
+  52   1          //Spring_NY 记录春节离当年元旦的天数。
+  53   1          //Sun_NY 记录阳历日离当年元旦的天数。
+  54   1      
+  55   1          if( ((LunarCalendarTable[year-2001] & 0x0060) >> 5) == 1)
+  56   1              Spring_NY = (LunarCalendarTable[year-2001] & 0x001F) - 1;
+  57   1          else
+  58   1              Spring_NY = (LunarCalendarTable[year-2001] & 0x001F) - 1 + 31;
+  59   1      
+  60   1          Sun_NY = MonthAdd[month-1] + day - 1;
+  61   1      
+  62   1          if( (!(year % 4)) && (month > 2))
+  63   1              Sun_NY++;
+  64   1      
+  65   1          //StaticDayCount记录大小月的天数 29 或30
+  66   1          //index 记录从哪个月开始来计算。
+  67   1          //flag 是用来对闰月的特殊处理。
+  68   1      
+  69   1          //判断阳历日在春节前还是春节后
+  70   1          if (Sun_NY >= Spring_NY)//阳历日在春节后（含春节那天）
+  71   1          {
+  72   2              Sun_NY -= Spring_NY;
+  73   2              month = 1;
+  74   2              index = 1;
+  75   2              flag = 0;
+  76   2              if( ( LunarCalendarTable[year - 2001] & (0x80000 >> (index-1)) ) ==0)
+  77   2                  StaticDayCount = 29;
+  78   2              else
+  79   2                  StaticDayCount = 30;
+  80   2      
+  81   2              while(Sun_NY >= StaticDayCount)
+  82   2              {
+  83   3                  Sun_NY -= StaticDayCount;
+  84   3                  index++;
+  85   3      
+  86   3                  if(month == ((LunarCalendarTable[year - 2001] & 0xF00000) >> 20) )
+  87   3                  {
+  88   4                      flag = ~flag;
+  89   4                      if(flag == 0)
+  90   4                          month++;
+  91   4                  }
+  92   3                  else
+  93   3                      month++;
+  94   3                  if( ( LunarCalendarTable[year - 2001] & (0x80000 >> (index-1)) ) ==0)
+  95   3                      StaticDayCount=29;
+  96   3                  else
+  97   3                      StaticDayCount=30;
+  98   3              }
+  99   2              day = Sun_NY + 1;
+ 100   2          }
+ 101   1          else//阳历日在春节前
+ 102   1          { 
+ 103   2              Spring_NY -= Sun_NY;
+ 104   2              year--;
+ 105   2              month = 12;
+ 106   2      
+ 107   2              if ( ((LunarCalendarTable[year - 2001] & 0xF00000) >> 20) == 0)
+ 108   2                  index = 12;
+ 109   2              else
+ 110   2                  index = 13;
+ 111   2            
+ 112   2              flag = 0;
+C51 COMPILER V9.54   LUNAR                                                                 07/05/2024 16:37:32 PAGE 3   
+
+ 113   2      
+ 114   2              if( ( LunarCalendarTable[year - 2001] & (0x80000 >> (index-1)) ) ==0)
+ 115   2                  StaticDayCount = 29;
+ 116   2              else
+ 117   2                  StaticDayCount = 30;
+ 118   2      
+ 119   2              while(Spring_NY > StaticDayCount)
+ 120   2              {
+ 121   3                  Spring_NY -= StaticDayCount;
+ 122   3                  index--;
+ 123   3      
+ 124   3                  if(flag == 0)
+ 125   3                      month--;
+ 126   3      
+ 127   3                  if(month == ((LunarCalendarTable[year - 2001] & 0xF00000) >> 20))
+ 128   3                      flag = ~flag;
+ 129   3      
+ 130   3                  if( ( LunarCalendarTable[year - 2001] & (0x80000 >> (index-1)) ) ==0)
+ 131   3                      StaticDayCount = 29;
+ 132   3                  else
+ 133   3                      StaticDayCount = 30;
+ 134   3               }
+ 135   2               day = StaticDayCount - Spring_NY + 1;
+ 136   2          }
+ 137   1      
+ 138   1          LunarCalendarDay = day;
+ 139   1          LunarCalendarDay |= (month << 6);
+ 140   1          if(month == ((LunarCalendarTable[year - 1901] & 0xF00000) >> 20))
+ 141   1              return 1;
+ 142   1          else
+ 143   1              return 0;
+ 144   1      
+ 145   1      }
+ 146          
+ 147          
+ 148          int lunar_calendar(int *solar, uchar *lunar)
+ 149          {
+ 150   1          int flag=0;
+ 151   1      
+ 152   1          if(LunarCalendar(solar[0],solar[1],solar[2]))
+ 153   1          {
+ 154   2              lunar[0] = (LunarCalendarDay & 0x3C0) >> 6;
+ 155   2              flag = 1; //闰月
+ 156   2          }
+ 157   1          else
+ 158   1          {
+ 159   2              lunar[0] = (LunarCalendarDay & 0x3C0) >> 6;
+ 160   2          }
+ 161   1      
+ 162   1          lunar[1] = LunarCalendarDay & 0x3F;
+ 163   1          
+ 164   1          return flag;
+ 165   1      }
+ 166          
+ 167          /*
+ 168           * 农历转换
+ 169          */
+ 170          void turn_lunar_calendar(uint year,uchar month,uchar day, uchar *lunar)
+ 171          {
+ 172   1        int solar[3];
+ 173   1      
+ 174   1        solar[0] = year;
+C51 COMPILER V9.54   LUNAR                                                                 07/05/2024 16:37:32 PAGE 4   
+
+ 175   1        solar[1] = month;
+ 176   1        solar[2] = day;
+ 177   1      
+ 178   1        lunar_calendar(solar, lunar);
+ 179   1      }
+ 180          uchar judgeSolar(uint year,uchar month,uchar day)
+ 181          {
+ 182   1        uchar temp;
+ 183   1        uint location = (year - 2000) * 12 + month - 1;
+ 184   1            if(day<15)
+ 185   1              {
+ 186   2              temp=15-day;
+ 187   2              if((jieqi[location] >> 4) == temp) return ((month-1) * 2);
+ 188   2              else return (0);
+ 189   2              }
+ 190   1          else if(day==15) return (0);
+ 191   1          else
+ 192   1              {
+ 193   2              temp=day-15;
+ 194   2              if((jieqi[location]&0x0f)==temp) return ((month-1) * 2 + 1);
+ 195   2              else return (0);
+ 196   2              }
+ 197   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1224    ----
+   CONSTANT SIZE    =    564    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =      2      37
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

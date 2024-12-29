@@ -1,0 +1,186 @@
+C51 COMPILER V9.54   JQ8900                                                                07/05/2024 16:37:33 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE JQ8900
+OBJECT MODULE PLACED IN .\Objects\jq8900.obj
+COMPILER INVOKED BY: F:\keil5\C51\BIN\C51.EXE jq8900.c COMPACT ROM(COMPACT) OPTIMIZE(9,SPEED) BROWSE DEBUG OBJECTEXTEND 
+                    -PRINT(.\Listings\jq8900.lst) TABS(2) OBJECT(.\Objects\jq8900.obj)
+
+line level    source
+
+   1          #include "jq8900.h"
+   2          
+   3          sbit sda = P1 ^ 5;
+   4          
+   5          void Display_String(uchar line, uchar *string);
+   6          uchar key_scan();
+   7          uchar song;
+   8          
+   9          // 延时子函数
+  10          void Delay1500us()    //@11.0592MHz
+  11          {
+  12   1        unsigned char i, j;
+  13   1      
+  14   1        _nop_();
+  15   1        i = 17;
+  16   1        j = 31;
+  17   1        do
+  18   1        {
+  19   2          while (--j);
+  20   2        } while (--i);
+  21   1      }
+  22          
+  23          // 延时子函数
+  24          void Delay500us()   //@11.0592MHz
+  25          {
+  26   1        unsigned char i, j;
+  27   1      
+  28   1        _nop_();
+  29   1        _nop_();
+  30   1        i = 6;
+  31   1        j = 93;
+  32   1        do
+  33   1        {
+  34   2          while (--j);
+  35   2        } while (--i);
+  36   1      }
+  37          
+  38          // 延时子函数
+  39          void Delay2ms()   //@11.0592MHz
+  40          {
+  41   1        unsigned char i, j;
+  42   1      
+  43   1        _nop_();
+  44   1        _nop_();
+  45   1        i = 22;
+  46   1        j = 128;
+  47   1        do
+  48   1        {
+  49   2          while (--j);
+  50   2        } while (--i);
+  51   1      }
+  52          
+  53          // 延时子函数
+  54          void Delay4ms()   //@11.0592MHz
+C51 COMPILER V9.54   JQ8900                                                                07/05/2024 16:37:33 PAGE 2   
+
+  55          {
+  56   1        unsigned char i, j;
+  57   1      
+  58   1        _nop_();
+  59   1        i = 44;
+  60   1        j = 4;
+  61   1        do
+  62   1        {
+  63   2          while (--j);
+  64   2        } while (--i);
+  65   1      }
+  66          
+  67          // 以一线通信向jq8900发送指令
+  68          // 常见指令 0x11：重复播放
+  69          // 0x13：结束播放 0x0a：清除数字 0x0b：选曲确认
+  70          void SendData(uint addr) // 发 送 函 数
+  71          {
+  72   1          int i = 0;
+  73   1          EA = 0; //发 送 时 关 掉 中 断 ， 防 止 中 断 影 响 时 序 
+  74   1          sda = 1;//开 始 拉 高
+  75   1          Delay2ms();
+  76   1          sda = 0; //开 始 引 导 码 
+  77   1          Delay4ms(); //此 处 延 时 最 少 要 大 于 2 m s ， 此参数延 时 为 3 1 0 m s 
+  78   1          for( i=0;i<8;i++) //总 共 8 位 数 据 
+  79   1          {
+  80   2              sda = 1;
+  81   2              if(addr & 0x01) //3 : 1 表 示 数 据 位 1 , 每 个位 用 两 个 脉 冲 表 示 
+  82   2              {
+  83   3                  Delay1500us();
+  84   3                  sda = 0 ;
+  85   3                  Delay500us();
+  86   3              }
+  87   2              else //1 ： 3 表 示 数 据 位 0 , 每个 位 用 两 个 脉 冲 表 示 
+  88   2              {
+  89   3                  Delay500us();
+  90   3                  sda = 0;
+  91   3                  Delay1500us();
+  92   3              }
+  93   2              addr >>= 1;
+  94   2          }
+  95   1          sda = 1 ;
+  96   1          EA = 1 ; //恢 复 中 断
+  97   1      }
+  98          
+  99          
+ 100          // 选歌子函数，共六首歌曲，使用jq8900存储卡版本存储在sd卡内,以0000x.mp4命名
+ 101          // 滚动屏幕显示，通过全局变量song存储歌曲序号，通过senddata（song）选曲播放。
+ 102          void Musicselect(void)
+ 103          {
+ 104   1        uchar flag = 1, key;
+ 105   1        while(1)
+ 106   1        {
+ 107   2          Display_String(1,"选择音乐  K3确认");
+ 108   2          if (flag == 1)
+ 109   2          {
+ 110   3            Display_String(2,"1.拯救         *");
+ 111   3            Display_String(3,"2.Whataya Want. ");
+ 112   3            Display_String(4,"3.Wrecking Ball ");
+ 113   3          }
+ 114   2          else if (flag == 2)
+ 115   2          {
+ 116   3            Display_String(2,"1.拯救          ");
+C51 COMPILER V9.54   JQ8900                                                                07/05/2024 16:37:33 PAGE 3   
+
+ 117   3            Display_String(3,"2.Whataya Want.*");
+ 118   3            Display_String(4,"3.Wrecking Ball ");
+ 119   3          }
+ 120   2          else if (flag == 3)
+ 121   2          {
+ 122   3            Display_String(2,"1.拯救          ");
+ 123   3            Display_String(3,"2.Whataya Want. ");
+ 124   3            Display_String(4,"3.Wrecking Ball*");
+ 125   3          }
+ 126   2          else if (flag == 4)
+ 127   2          {
+ 128   3            Display_String(2,"2.Whataya Want. ");
+ 129   3            Display_String(3,"3.Wrecking Ball ");
+ 130   3            Display_String(4,"4.思念         *");
+ 131   3          }
+ 132   2          else if (flag == 5)
+ 133   2          {
+ 134   3            Display_String(2,"3.Wrecking Ball ");
+ 135   3            Display_String(3,"4.思念          ");
+ 136   3            Display_String(4,"5.雨天雨天     *");
+ 137   3          }
+ 138   2          else if (flag == 6)
+ 139   2          {
+ 140   3            Display_String(2,"4.思念          ");
+ 141   3            Display_String(3,"5.雨天雨天      ");
+ 142   3            Display_String(4,"6.印第安老斑鸠 *");
+ 143   3          }
+ 144   2          
+ 145   2          key = key_scan();
+ 146   2          if (key == 2)
+ 147   2          {
+ 148   3            flag++;
+ 149   3            if(flag == 7)flag = 1;
+ 150   3          }
+ 151   2          else if (key == 3)
+ 152   2          {
+ 153   3            song = flag;
+ 154   3            break;
+ 155   3          }
+ 156   2        }
+ 157   1      }
+ 158          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    360    ----
+   CONSTANT SIZE    =    204    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =      1       2
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

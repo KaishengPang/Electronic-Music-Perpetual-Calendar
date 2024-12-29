@@ -1,0 +1,108 @@
+C51 COMPILER V9.54   BLUETOOTH                                                             07/05/2024 16:37:33 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE BLUETOOTH
+OBJECT MODULE PLACED IN .\Objects\bluetooth.obj
+COMPILER INVOKED BY: F:\keil5\C51\BIN\C51.EXE bluetooth.c COMPACT ROM(COMPACT) OPTIMIZE(9,SPEED) BROWSE DEBUG OBJECTEXTE
+                    -ND PRINT(.\Listings\bluetooth.lst) TABS(2) OBJECT(.\Objects\bluetooth.obj)
+
+line level    source
+
+   1          # include <reg52.h>
+   2          #include "ds1302.h"
+   3          #include "bluetooth.h"
+   4          
+   5          void Delay5000ms();
+   6          void Delay500ms();
+   7          uchar weather;
+   8          /*****************************************************************
+   9          *接收中断服务子程序
+  10          *****************************************************************/
+  11          void Uart_Isr(void)  interrupt 4
+  12          {
+  13   1        uchar Recv;
+  14   1        if(RI==1)
+  15   1        {
+  16   2          RI=0;
+  17   2          Recv = SBUF;
+  18   2          switch(Recv)
+  19   2          {
+  20   3            //收到对应的数据对年月日进行处理
+  21   3            case 1:blue2time(1, 6);break;
+  22   3            case 2:blue2time(0, 6);break;
+  23   3            
+  24   3            case 3:blue2time(1, 4);break;
+  25   3            case 4:blue2time(0, 4);break;
+  26   3            
+  27   3            case 5:blue2time(1, 3);break;
+  28   3            case 6:blue2time(0, 3);break;
+  29   3            
+  30   3            case 7:blue2time(1, 2);break;
+  31   3            case 8:blue2time(0, 2);break;
+  32   3            
+  33   3            case 9:blue2time(1, 1);break;
+  34   3            case 10:blue2time(0, 1);break;
+  35   3            
+  36   3            case 11:blue2time(1, 0);break;
+  37   3            case 12:blue2time(0, 0);break;
+  38   3            
+  39   3            //闹钟设置的一部分
+  40   3            case 13:blue2clocktime(1, 6);break;
+  41   3            case 14:blue2clocktime(0, 6);break;
+  42   3            
+  43   3            case 15:blue2clocktime(1, 4);break;
+  44   3            case 16:blue2clocktime(0, 4);break;
+  45   3            
+  46   3            case 17:blue2clocktime(1, 3);break;
+  47   3            case 18:blue2clocktime(0, 3);break;
+  48   3            
+  49   3            case 19:blue2clocktime(1, 2);break;
+  50   3            case 20:blue2clocktime(0, 2);break;
+  51   3            
+  52   3            case 21:blue2clocktime(1, 1);break;
+  53   3            case 22:blue2clocktime(0, 1);break;
+  54   3            
+C51 COMPILER V9.54   BLUETOOTH                                                             07/05/2024 16:37:33 PAGE 2   
+
+  55   3            case 23:blue2clocktime(1, 0);break;
+  56   3            case 24:blue2clocktime(0, 0);break;
+  57   3      
+  58   3          }
+  59   2          if(Recv >= 25) weather = Recv;
+  60   2          }
+  61   1      }
+  62          /*****************************************************************
+  63          *串口初始化
+  64          *****************************************************************/
+  65          void Uart_Init_blue(void)
+  66          {
+  67   1        SCON = 0x50;         //方式1 8位数据 接收地址甄别禁止 接收使能 0101 0000
+  68   1        PCON = 0x00;         //波特率不增倍
+  69   1        TMOD = 0x20;         //T1,8位自动重装
+  70   1        TH1 = 0xfd;           //波特率9600
+  71   1        TL1 = 0xfd;
+  72   1        EA   = 1;
+  73   1        ES   = 1;
+  74   1        TR1 = 1;            //启动t1
+  75   1      }
+  76          // 单片机蓝牙向手机蓝牙发数据。仅用于报警发短信
+  77          void PostChar(uchar character)
+  78          {
+  79   1        SBUF = character;
+  80   1        while(!TI);
+  81   1        TI = 0;
+  82   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    286    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =      1       1
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,11 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\12864.obj",
+".\Objects\ds1302.obj",
+".\Objects\lunar.obj",
+".\Objects\keyscan.obj",
+".\Objects\dht11.obj",
+".\Objects\bluetooth.obj",
+".\Objects\jq8900.obj" 
+TO ".\Objects\calendarCX" 
+PRINT(".\Listings\calendarCX.m51") RAMSIZE(256) 

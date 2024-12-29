@@ -1,0 +1,635 @@
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DS1302
+OBJECT MODULE PLACED IN .\Objects\ds1302.obj
+COMPILER INVOKED BY: F:\keil5\C51\BIN\C51.EXE ds1302.c COMPACT ROM(COMPACT) OPTIMIZE(9,SPEED) BROWSE DEBUG OBJECTEXTEND 
+                    -PRINT(.\Listings\ds1302.lst) TABS(2) OBJECT(.\Objects\ds1302.obj)
+
+line level    source
+
+   1          #include"ds1302.h"
+   2          #include"lcd.h"
+   3          sbit DSIO=P1^3;
+   4          sbit RST=P1^4;
+   5          sbit SCLK=P1^2;
+   6          
+   7          //---DS1302写入和读取时分秒的地址命令---//
+   8          //---秒分时日月周年 最低位读写位;-------//
+   9          uchar code READ_RTC_ADDR[7] = {0x81, 0x83, 0x85, 0x87, 0x89, 0x8b, 0x8d};
+  10          uchar code WRITE_RTC_ADDR[7] = {0x80, 0x82, 0x84, 0x86, 0x88, 0x8a, 0x8c};
+  11          
+  12          //---DS1302时钟初始化2024年7月4日15点00分00秒。---//
+  13          //---存储顺序是秒分时日月周年,存储格式是用BCD码---//
+  14          uchar TIME[7] = {0x00, 0x00, 0x17, 0x04, 0x07, 0x00, 0x24};
+  15          //                0秒   1分  2时   3日   4月   5周   6年
+  16          uchar displayData[16];//在12864显示的第一行
+  17          uchar displayData2[16];//在12864显示的第二行
+  18          uchar time1[16];
+  19          uchar time2[16];
+  20          uchar buffer[7];
+  21          uchar clocktime[7];
+  22          /*******************************************************************************
+  23          * 函 数 名         : Ds1302Write
+  24          * 函数功能       : 向DS1302命令（地址+数据）
+  25          * 输    入         : addr,dat
+  26          * 输    出         : 无
+  27          *******************************************************************************/
+  28          uchar key_scan();
+  29          void Display_String(uchar line, uchar *string);
+  30          void Delay5Ms(void);
+  31          void Add(uchar dateBCD, uchar symbol);
+  32          
+  33          void Ds1302Write(uchar addr, uchar dat)
+  34          {
+  35   1        uchar n;
+  36   1        RST = 0;
+  37   1        _nop_();
+  38   1      
+  39   1        SCLK = 0;//先将SCLK置低电平。
+  40   1        _nop_();
+  41   1        RST = 1; //然后将RST(CE)置高电平。
+  42   1        _nop_();
+  43   1      
+  44   1        for (n=0; n<8; n++)//开始传送八位地址命令
+  45   1        {
+  46   2          DSIO = addr & 0x01;//数据从低位开始传送
+  47   2          addr >>= 1;
+  48   2          SCLK = 1;//数据在上升沿时，DS1302读取数据
+  49   2          _nop_();
+  50   2          SCLK = 0;
+  51   2          _nop_();
+  52   2        }
+  53   1        for (n=0; n<8; n++)//写入8位数据
+  54   1        {
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 2   
+
+  55   2          DSIO = dat & 0x01;
+  56   2          dat >>= 1;
+  57   2          SCLK = 1;//数据在上升沿时，DS1302读取数据
+  58   2          _nop_();
+  59   2          SCLK = 0;
+  60   2          _nop_();
+  61   2        } 
+  62   1           
+  63   1        RST = 0;//传送数据结束
+  64   1        _nop_();
+  65   1      }
+  66          
+  67          /*******************************************************************************
+  68          * 函 数 名         : Ds1302Read
+  69          * 函数功能       : 读取一个地址的数据
+  70          * 输    入         : addr
+  71          * 输    出         : dat
+  72          *******************************************************************************/
+  73          
+  74          uchar Ds1302Read(uchar addr)
+  75          {
+  76   1        uchar n,dat,dat1;
+  77   1        RST = 0;
+  78   1        _nop_();
+  79   1      
+  80   1        SCLK = 0;//先将SCLK置低电平。
+  81   1        _nop_();
+  82   1        RST = 1;//然后将RST(CE)置高电平。
+  83   1        _nop_();
+  84   1      
+  85   1        for(n=0; n<8; n++)//开始传送八位地址命令
+  86   1        {
+  87   2          DSIO = addr & 0x01;//数据从低位开始传送
+  88   2          addr >>= 1;
+  89   2          SCLK = 1;//数据在上升沿时，DS1302读取数据
+  90   2          _nop_();
+  91   2          SCLK = 0;//DS1302下降沿时，放置数据
+  92   2          _nop_();
+  93   2        }
+  94   1        _nop_();
+  95   1        for(n=0; n<8; n++)//读取8位数据
+  96   1        {
+  97   2          dat1 = DSIO;//从最低位开始接收
+  98   2          dat = (dat>>1) | (dat1<<7);
+  99   2          SCLK = 1;
+ 100   2          _nop_();
+ 101   2          SCLK = 0;//DS1302下降沿时，放置数据
+ 102   2          _nop_();
+ 103   2        }
+ 104   1      
+ 105   1        RST = 0;
+ 106   1        _nop_();  //以下为DS1302复位的稳定时间,必须的。
+ 107   1        SCLK = 1;
+ 108   1        _nop_();
+ 109   1        DSIO = 0;
+ 110   1        _nop_();
+ 111   1        DSIO = 1;
+ 112   1        _nop_();
+ 113   1        return dat; 
+ 114   1      }
+ 115          
+ 116          /*******************************************************************************
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 3   
+
+ 117          * 函 数 名         : Ds1302Init
+ 118          * 函数功能       : 初始化DS1302.
+ 119          * 输    入         : 无
+ 120          * 输    出         : 无
+ 121          *******************************************************************************/
+ 122          
+ 123          void Ds1302Init()
+ 124          {
+ 125   1        uchar n;
+ 126   1        Ds1302Write(0x8E,0X00);    //禁止写保护，就是关闭写保护功能
+ 127   1        for (n=0; n<7; n++)//写入7个字节的时钟信号：分秒时日月周年
+ 128   1        {
+ 129   2          Ds1302Write(WRITE_RTC_ADDR[n], TIME[n]);  
+ 130   2        }
+ 131   1        Ds1302Write(0x8E,0x80);    //打开写保护功能
+ 132   1      }
+ 133          
+ 134          /*******************************************************************************
+ 135          * 函 数 名         : Ds1302ReadTime
+ 136          * 函数功能       : 读取时钟信息
+ 137          * 输    入         : 无
+ 138          * 输    出         : 无
+ 139          *******************************************************************************/
+ 140          
+ 141          void Ds1302ReadTime()
+ 142          {
+ 143   1        uchar n;
+ 144   1        for (n=0; n<7; n++)//读取7个字节的时钟信号：分秒时日月周年
+ 145   1        {
+ 146   2          TIME[n] = Ds1302Read(READ_RTC_ADDR[n]);
+ 147   2        }
+ 148   1          
+ 149   1      }
+ 150          //将数据转化为可显示在12864上的字符串
+ 151          //void dataProcess(void)
+ 152          void dataProcess(void)
+ 153          {
+ 154   1        uchar i;
+ 155   1        Ds1302ReadTime();
+ 156   1        //年的第1位
+ 157   1        displayData[0] = '2';
+ 158   1        //年的第2位
+ 159   1        displayData[1] = '0';
+ 160   1        //年的第3位
+ 161   1        displayData[2] = TIME[6] / 16 + '0';
+ 162   1        //年的第4位
+ 163   1        displayData[3] = TIME[6] % 16 + '0';
+ 164   1        
+ 165   1        displayData[4] = '-';
+ 166   1        //月 首位
+ 167   1        displayData[5] = TIME[4] / 16 + '0';
+ 168   1        //月 尾位
+ 169   1        displayData[6] = TIME[4] % 16 + '0';
+ 170   1        
+ 171   1        displayData[7] = '-';
+ 172   1        //日 首位
+ 173   1        displayData[8] = TIME[3] / 16 + '0';
+ 174   1        //日 尾位
+ 175   1        displayData[9] = TIME[3] % 16 + '0';
+ 176   1        
+ 177   1        for (i=10; i<=15; i++)
+ 178   1        {
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 4   
+
+ 179   2          displayData[i] = ' ';
+ 180   2        }
+ 181   1        ///////////////////
+ 182   1        ////换行
+ 183   1        ///////////////////
+ 184   1        
+ 185   1        //小时 首位
+ 186   1        displayData2[0] = TIME[2] / 16 + '0';
+ 187   1        //小时 尾位
+ 188   1        displayData2[1] = TIME[2] % 16 + '0';
+ 189   1        
+ 190   1        displayData2[2] = ':';
+ 191   1        //分钟 首位
+ 192   1        displayData2[3] = TIME[1] / 16 + '0';
+ 193   1        //分钟 尾位
+ 194   1        displayData2[4] = TIME[1] % 16 + '0';
+ 195   1        
+ 196   1        displayData2[5] = ':';
+ 197   1        //秒 首位
+ 198   1        displayData2[6] = TIME[0] / 16 + '0';
+ 199   1        //秒 尾位
+ 200   1        displayData2[7] = TIME[0] % 16 + '0';
+ 201   1        // 分隔
+ 202   1        displayData2[8] = ' ';
+ 203   1        
+ 204   1        if (displayData2[0] == '0')
+ 205   1        {
+ 206   2          displayData2[9] = 'A';
+ 207   2        }
+ 208   1        else if (displayData2[0] == '1')
+ 209   1        {
+ 210   2          if (displayData2[1] >= '2')
+ 211   2          {
+ 212   3            displayData2[9] = 'P';
+ 213   3          }
+ 214   2          else
+ 215   2          {
+ 216   3            displayData2[9] = 'A';
+ 217   3          }
+ 218   2        }
+ 219   1        else
+ 220   1        {
+ 221   2          displayData2[9] = 'P';
+ 222   2        }
+ 223   1        
+ 224   1      
+ 225   1        displayData2[10] = 'M';
+ 226   1        for (i=11; i<=15; i++)
+ 227   1        {
+ 228   2          displayData2[i] = ' ';
+ 229   2        }
+ 230   1      }
+ 231          
+ 232          
+ 233          void dataProcess_new(void)
+ 234          {
+ 235   1        uchar i;
+ 236   1        //年的第1位
+ 237   1        time1[0] = '2';
+ 238   1        //年的第2位
+ 239   1        time1[1] = '0';
+ 240   1        //年的第3位
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 5   
+
+ 241   1        time1[2] = buffer[6] / 16 + '0';
+ 242   1        //年的第4位
+ 243   1        time1[3] = buffer[6] % 16 + '0';
+ 244   1        
+ 245   1        time1[4] = '-';
+ 246   1        //月 首位
+ 247   1        time1[5] = buffer[4] / 16 + '0';
+ 248   1        //月 尾位
+ 249   1        time1[6] = buffer[4] % 16 + '0';
+ 250   1        
+ 251   1        time1[7] = '-';
+ 252   1        //日 首位
+ 253   1        time1[8] = buffer[3] / 16 + '0';
+ 254   1        //日 尾位
+ 255   1        time1[9] = buffer[3] % 16 + '0';
+ 256   1        
+ 257   1        for (i=10; i<=15; i++)
+ 258   1        {
+ 259   2          time1[i] = ' ';
+ 260   2        }
+ 261   1        ///////////////////
+ 262   1        ////换行
+ 263   1        ///////////////////
+ 264   1        
+ 265   1        //小时 首位
+ 266   1        time2[0] = buffer[2] / 16 + '0';
+ 267   1        //小时 尾位
+ 268   1        time2[1] = buffer[2] % 16 + '0';
+ 269   1        
+ 270   1        time2[2] = ':';
+ 271   1        //分钟 首位
+ 272   1        time2[3] = buffer[1] / 16 + '0';
+ 273   1        //分钟 尾位
+ 274   1        time2[4] = buffer[1] % 16 + '0';
+ 275   1        
+ 276   1        time2[5] = ':';
+ 277   1        //秒 首位
+ 278   1        time2[6] = buffer[0] / 16 + '0';
+ 279   1        //秒 尾位
+ 280   1        time2[7] = buffer[0] % 16 + '0';
+ 281   1        // 分隔
+ 282   1        time2[8] = ' ';
+ 283   1        
+ 284   1        if (time2[0] == '0')
+ 285   1        {
+ 286   2          time2[9] = 'A';
+ 287   2        }
+ 288   1        else if (time2[0] == '1')
+ 289   1        {
+ 290   2          if (time2[1] >= '2')
+ 291   2          {
+ 292   3            time2[9] = 'P';
+ 293   3          }
+ 294   2          else
+ 295   2          {
+ 296   3            time2[9] = 'A';
+ 297   3          }
+ 298   2        }
+ 299   1        else
+ 300   1        {
+ 301   2          time2[9] = 'P';
+ 302   2        }
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 6   
+
+ 303   1        
+ 304   1      
+ 305   1        time2[10] = 'M';
+ 306   1        for (i=11; i<=15; i++)
+ 307   1        {
+ 308   2          time2[i] = ' ';
+ 309   2        }
+ 310   1        
+ 311   1      }
+ 312          
+ 313          
+ 314          void dataChange(void)
+ 315          {
+ 316   1        uchar n, key, flag = 0;
+ 317   1      //  uchar buffer[7] = {0x00, 0x00, 0x15, 0x06, 0x06, 0x00, 0x22};
+ 318   1      //                      0秒   1分   2时   3日   4月    5周   6年  
+ 319   1        //time1：年 月 日 显示形式
+ 320   1        //time2: 时 分 秒 显示形式
+ 321   1        //读取7个字节的时钟信号：分秒时日月周年
+ 322   1        Ds1302ReadTime();
+ 323   1        for (n=0; n<7; n++)
+ 324   1        {
+ 325   2          buffer[n] = TIME[n];
+ 326   2        }
+ 327   1        Lcm_Init();
+ 328   1        while(1)
+ 329   1        {
+ 330   2          if (flag == 0)
+ 331   2          {
+ 332   3            Display_String(1, "修改--年        ");
+ 333   3          }
+ 334   2          else if(flag == 1)
+ 335   2          {
+ 336   3            Display_String(1, "修改--月        ");
+ 337   3          }
+ 338   2          else if(flag == 2)
+ 339   2          {
+ 340   3            Display_String(1, "修改--日        ");
+ 341   3          }
+ 342   2          else if(flag == 3)
+ 343   2          {
+ 344   3            Display_String(1, "修改--时        ");
+ 345   3          }
+ 346   2          else if(flag == 4)
+ 347   2          {
+ 348   3            Display_String(1, "修改--分        ");
+ 349   3          }
+ 350   2          else if(flag == 5)
+ 351   2          {
+ 352   3            Display_String(1, "修改--秒        ");
+ 353   3          }
+ 354   2          
+ 355   2          dataProcess_new();
+ 356   2          Display_String(2, time1);
+ 357   2          Display_String(3, time2);
+ 358   2          Display_String(4, "1Flag2Add3Bub4RE");
+ 359   2          
+ 360   2          key = key_scan();
+ 361   2          // 修改flag
+ 362   2          if (key == 1){
+ 363   3            flag ++;
+ 364   3            if (flag == 6)flag = 0;
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 7   
+
+ 365   3          }
+ 366   2          else if (key == 2){
+ 367   3            uchar date, n;
+ 368   3            if (flag == 0)
+ 369   3            {
+ 370   4              n = 6;
+ 371   4            }
+ 372   3            else if (flag == 1)
+ 373   3            {
+ 374   4              n = 4;
+ 375   4            }
+ 376   3            else if (flag == 2)
+ 377   3            {
+ 378   4              n = 3;
+ 379   4            }
+ 380   3            else if (flag == 3)
+ 381   3            {
+ 382   4              n = 2;
+ 383   4            }
+ 384   3            else if (flag == 4)
+ 385   3            {
+ 386   4              n = 1;
+ 387   4            }
+ 388   3            else if (flag == 5)
+ 389   3            {
+ 390   4              n = 0;
+ 391   4            }
+ 392   3            date = buffer[n] + 1;
+ 393   3            buffer[n] = date;
+ 394   3          }
+ 395   2          else if (key == 3){
+ 396   3            uchar date, n;
+ 397   3            if (flag == 0)
+ 398   3            {
+ 399   4              n = 6;
+ 400   4            }
+ 401   3            else if (flag == 1)
+ 402   3            {
+ 403   4              n = 4;
+ 404   4            }
+ 405   3            else if (flag == 2)
+ 406   3            {
+ 407   4              n = 3;
+ 408   4            }
+ 409   3            else if (flag == 3)
+ 410   3            {
+ 411   4              n = 2;
+ 412   4            }
+ 413   3            else if (flag == 4)
+ 414   3            {
+ 415   4              n = 1;
+ 416   4            }
+ 417   3            else if (flag == 5)
+ 418   3            {
+ 419   4              n = 0;
+ 420   4            }
+ 421   3            date = buffer[n] - 1;
+ 422   3            buffer[n] = date;
+ 423   3          }
+ 424   2          else if (key == 4){break;}
+ 425   2        }
+ 426   1      
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 8   
+
+ 427   1        Ds1302Write(0x8E,0X00);//禁止写保护，就是关闭写保护功能
+ 428   1        for (n=0; n<7; n++)//写入7个字节的时钟信号：分秒时日月周年
+ 429   1        {
+ 430   2          Ds1302Write(WRITE_RTC_ADDR[n], buffer[n]);
+ 431   2        }
+ 432   1        Ds1302Write(0x8E,0x80);//打开写保护功能
+ 433   1      }
+ 434          
+ 435          void setClock(void)
+ 436          {
+ 437   1        uchar n, key, flag = 0, i;
+ 438   1      //  uchar buffer[7] = {0x00, 0x00, 0x15, 0x06, 0x06, 0x00, 0x22};
+ 439   1      //                      0秒   1分   2时   3日   4月    5周   6年  
+ 440   1        //time1：年 月 日 显示形式
+ 441   1        //time2: 时 分 秒 显示形式
+ 442   1        //读取7个字节的时钟信号：分秒时日月周年
+ 443   1        Ds1302ReadTime();
+ 444   1        for (n=0; n<7; n++)
+ 445   1        {
+ 446   2          buffer[n] = TIME[n];
+ 447   2        }
+ 448   1        Lcm_Init();
+ 449   1        while(1)
+ 450   1        {
+ 451   2          if (flag == 0)
+ 452   2          {
+ 453   3            Display_String(1, "闹钟修改--年    ");
+ 454   3          }
+ 455   2          else if(flag == 1)
+ 456   2          {
+ 457   3            Display_String(1, "闹钟修改--月    ");
+ 458   3          }
+ 459   2          else if(flag == 2)
+ 460   2          {
+ 461   3            Display_String(1, "闹钟修改--日    ");
+ 462   3          }
+ 463   2          else if(flag == 3)
+ 464   2          {
+ 465   3            Display_String(1, "闹钟修改--时    ");
+ 466   3          }
+ 467   2          else if(flag == 4)
+ 468   2          {
+ 469   3            Display_String(1, "闹钟修改--分    ");
+ 470   3          }
+ 471   2          else if(flag == 5)
+ 472   2          {
+ 473   3            Display_String(1, "闹钟修改--秒    ");
+ 474   3          }
+ 475   2          
+ 476   2          dataProcess_new();
+ 477   2          Display_String(2, time1);
+ 478   2          Display_String(3, time2);
+ 479   2          
+ 480   2          key = key_scan();
+ 481   2          // 修改flag
+ 482   2          if (key == 1){
+ 483   3            flag ++;
+ 484   3            if (flag == 6)flag = 0;
+ 485   3          }
+ 486   2          else if (key == 2){
+ 487   3            uchar date, n;
+ 488   3            if (flag == 0)
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 9   
+
+ 489   3            {
+ 490   4              n = 6;
+ 491   4            }
+ 492   3            else if (flag == 1)
+ 493   3            {
+ 494   4              n = 4;
+ 495   4            }
+ 496   3            else if (flag == 2)
+ 497   3            {
+ 498   4              n = 3;
+ 499   4            }
+ 500   3            else if (flag == 3)
+ 501   3            {
+ 502   4              n = 2;
+ 503   4            }
+ 504   3            else if (flag == 4)
+ 505   3            {
+ 506   4              n = 1;
+ 507   4            }
+ 508   3            else if (flag == 5)
+ 509   3            {
+ 510   4              n = 0;
+ 511   4            }
+ 512   3            date = buffer[n] + 1;
+ 513   3            buffer[n] = date;
+ 514   3          }
+ 515   2          else if (key == 3){
+ 516   3            uchar date, n;
+ 517   3            if (flag == 0)
+ 518   3            {
+ 519   4              n = 6;
+ 520   4            }
+ 521   3            else if (flag == 1)
+ 522   3            {
+ 523   4              n = 4;
+ 524   4            }
+ 525   3            else if (flag == 2)
+ 526   3            {
+ 527   4              n = 3;
+ 528   4            }
+ 529   3            else if (flag == 3)
+ 530   3            {
+ 531   4              n = 2;
+ 532   4            }
+ 533   3            else if (flag == 4)
+ 534   3            {
+ 535   4              n = 1;
+ 536   4            }
+ 537   3            else if (flag == 5)
+ 538   3            {
+ 539   4              n = 0;
+ 540   4            }
+ 541   3            date = buffer[n] - 1;
+ 542   3            buffer[n] = date;
+ 543   3          }
+ 544   2          else if (key == 4){break;}
+ 545   2        }
+ 546   1        
+ 547   1        for (i = 0; i < 8; i++)
+ 548   1        {
+ 549   2          clocktime[i] = buffer[i];
+ 550   2        }
+C51 COMPILER V9.54   DS1302                                                                07/05/2024 16:37:32 PAGE 10  
+
+ 551   1      }
+ 552          
+ 553          uchar alarmDetect(void)
+ 554          {
+ 555   1        uchar i, Alarm = 0;
+ 556   1        Ds1302ReadTime();
+ 557   1        for (i = 0; i < 3; i++)
+ 558   1        {
+ 559   2          if (clocktime[i] == TIME[i])Alarm++;
+ 560   2        }
+ 561   1        if(Alarm == 3)
+ 562   1        {
+ 563   2          return 1;
+ 564   2        }
+ 565   1        else
+ 566   1        {
+ 567   2          return 0;
+ 568   2        }
+ 569   1      }
+ 570          void blue2time(uchar flag, uchar pos)
+ 571          {
+ 572   1          uchar i, n, a;
+ 573   1          Ds1302ReadTime();
+ 574   1          for(i=0;i<8;i++)
+ 575   1          {
+ 576   2            buffer[i] = TIME[i];
+ 577   2          }
+ 578   1          a = buffer[pos] + 2 * flag - 1;
+ 579   1      
+ 580   1          buffer[pos] = a;
+ 581   1          Ds1302Write(0x8E,0X00);//禁止写保护，就是关闭写保护功能
+ 582   1          for (n=0; n<7; n++)//写入7个字节的时钟信号：分秒时日月周年
+ 583   1          {
+ 584   2            Ds1302Write(WRITE_RTC_ADDR[n], buffer[n]);
+ 585   2          }
+ 586   1          Ds1302Write(0x8E,0x80);//打开写保护功能
+ 587   1      }
+ 588          void blue2clocktime(uchar flag, uchar pos)
+ 589          {
+ 590   1        uchar buffer;
+ 591   1        buffer = clocktime[pos] + 2 * flag - 1;
+ 592   1        clocktime[pos] = buffer;
+ 593   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1438    ----
+   CONSTANT SIZE    =    235    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =     85       9
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

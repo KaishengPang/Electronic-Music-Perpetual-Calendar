@@ -1,0 +1,165 @@
+C51 COMPILER V9.54   12864                                                                 07/05/2024 16:37:32 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE 12864
+OBJECT MODULE PLACED IN .\Objects\12864.obj
+COMPILER INVOKED BY: F:\keil5\C51\BIN\C51.EXE 12864.c COMPACT ROM(COMPACT) OPTIMIZE(9,SPEED) BROWSE DEBUG OBJECTEXTEND P
+                    -RINT(.\Listings\12864.lst) TABS(2) OBJECT(.\Objects\12864.obj)
+
+line level    source
+
+   1          # include "lcd.h"
+   2          # include <string.h>
+   3          #define LCMdata P0
+   4          #define Busy 0x80
+   5          #define Busyt 0x01
+   6          
+   7          sbit RS = P2 ^ 0;
+   8          sbit RW = P2 ^ 1;
+   9          sbit E = P2 ^ 2;
+  10          sbit REST = P2 ^ 3;
+  11          
+  12          // bb c switch_bit相互配合实现DB和P0逆序输入输出
+  13          // P0.0 - DB7
+  14          // P0.1 - DB6
+  15          // P0.2 - DB5
+  16          // .......
+  17          uchar bdata BB;  //在位寻址区定义字符变量B
+  18          sbit B7=BB^7;
+  19          sbit B6=BB^6;
+  20          sbit B5=BB^5;
+  21          sbit B4=BB^4;
+  22          sbit B3=BB^3;
+  23          sbit B2=BB^2;
+  24          sbit B1=BB^1;
+  25          sbit B0=BB^0;
+  26          uchar bdata C;  //在位寻址区定义字符变量C
+  27          sbit C7=C^7;
+  28          sbit C6=C^6;
+  29          sbit C5=C^5;
+  30          sbit C4=C^4;
+  31          sbit C3=C^3;
+  32          sbit C2=C^2;
+  33          sbit C1=C^1;
+  34          sbit C0=C^0;
+  35          
+  36          
+  37          void Switch_bit(uchar InChar)
+  38          {
+  39   1          C = InChar;
+  40   1          B0=C7;
+  41   1          B1=C6;
+  42   1          B2=C5;
+  43   1          B3=C4;
+  44   1          B4=C3;
+  45   1          B5=C2;
+  46   1          B6=C1; 
+  47   1          B7=C0;
+  48   1      }
+  49          
+  50          // 在line行显示16位字符串，莫要使用strcat等string.h库中的函数拼字符串，51吃不消，极易出现bug
+  51          void Display_String(uchar line, uchar *string)
+  52          {
+  53   1          uchar addr, i;
+  54   1          if (line == 1)
+C51 COMPILER V9.54   12864                                                                 07/05/2024 16:37:32 PAGE 2   
+
+  55   1              addr = 0x80;
+  56   1          else if (line == 2)
+  57   1              addr = 0x90;
+  58   1          else if (line == 3)
+  59   1              addr = 0x88;
+  60   1          else if (line == 4)
+  61   1              addr = 0x98;
+  62   1          Wr_Command(addr, 1);
+  63   1          for (i = 0; i < 16; i++)
+  64   1          {
+  65   2              Wr_Data(*string++);
+  66   2          }
+  67   1      }
+  68          
+  69          void Wr_Data(uchar wrdata) 
+  70          {
+  71   1          RDbf();
+  72   1          RS = 1;
+  73   1          RW = 0;
+  74   1          E = 1;
+  75   1          Switch_bit(wrdata);
+  76   1          LCMdata = BB;
+  77   1          E = 0;
+  78   1      }
+  79          
+  80          // when you wanna write on the screen, utilize this fun first
+  81          void Wr_Command(uchar wrcommand, busyc)
+  82          {
+  83   1          if (busyc)
+  84   1              RDbf();
+  85   1          RS = 0;
+  86   1          RW = 0;
+  87   1          E = 1;
+  88   1          Switch_bit(wrcommand);
+  89   1          LCMdata = BB;
+  90   1          E = 0;
+  91   1      }
+  92          
+  93          void RDbf(void)
+  94          {
+  95   1          while (1)
+  96   1          {
+  97   2              RS = 0;
+  98   2              RW = 1;
+  99   2              E = 0;
+ 100   2              LCMdata = 0xFF;
+ 101   2              E = 1;
+ 102   2              if ((LCMdata & Busyt) == 0)
+ 103   2                  break;
+ 104   2          }
+ 105   1      }
+ 106          
+ 107          void Lcm_Init(void)
+ 108          {
+ 109   1          Delay5Ms();
+ 110   1          REST = 1;
+ 111   1          REST = 0;
+ 112   1          REST = 1;
+ 113   1          Wr_Command(0x30, 0);
+ 114   1          Delay5Ms();
+ 115   1          Wr_Command(0x30, 0); 
+ 116   1          Delay5Ms();
+C51 COMPILER V9.54   12864                                                                 07/05/2024 16:37:32 PAGE 3   
+
+ 117   1          Wr_Command(0x0C, 1);
+ 118   1          Delay5Ms();
+ 119   1          Wr_Command(0x01, 1);
+ 120   1          Delay5Ms();
+ 121   1          Delay5Ms();
+ 122   1          Wr_Command(0x06, 1);
+ 123   1          Delay5Ms();
+ 124   1      }
+ 125          
+ 126          void Delay5Ms()   //@11.0592MHz
+ 127          {
+ 128   1        unsigned char i, j;
+ 129   1      
+ 130   1        i = 54;
+ 131   1        j = 199;
+ 132   1        do
+ 133   1        {
+ 134   2          while (--j);
+ 135   2        } while (--i);
+ 136   1      }
+ 137          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    282    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----       7
+   DATA SIZE        =      2    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

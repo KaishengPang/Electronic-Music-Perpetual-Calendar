@@ -1,0 +1,555 @@
+C51 COMPILER V9.54   MAIN                                                                  07/05/2024 16:37:32 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: F:\keil5\C51\BIN\C51.EXE main.c COMPACT ROM(COMPACT) OPTIMIZE(9,SPEED) BROWSE DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          # include <reg52.h>
+   2          # include "jq8900.h"
+   3          # include "lcd.h"
+   4          # include "ds1302.h"
+   5          # include "bluetooth.h"
+   6          sbit MQ2 = P1 ^ 1;
+   7          
+   8          uchar key_scan();
+   9          void callMenu();
+  10          void Delay5Ms();
+  11          uchar* DHT11_receive();
+  12          void Delay30us();
+  13          void getweather();
+  14          void control();
+  15          
+  16          //Å©ÀúÄêÏà¹ØÇý¶¯
+  17          void turn_lunar_calendar(uint year, uchar month, uchar day, uchar *lunar);
+  18          uchar judgeSolar(uint year,uchar month,uchar day);
+  19          uchar calculateWeekDay(uint year, uchar month, uchar day);
+  20          
+  21          // ´¦ÀíÅ©ÀúÄêµÄÒ»Ð©×Ö·ûÊý×é
+  22          uchar code TianGan[20] = "¼×ÒÒ±û¶¡Îì¼º  ÐÁÈÉ¹ï";
+  23          uchar code DiZhi[24] = "×Ó³óÒúÃ®³½ËÈÎçÎ´ÉêÓÏÐçº¥";
+  24          uchar code month_lunar[24] = "Õý¶þÈþËÄÎåÁùÆß°Ë¾ÅÊ®¶¬À°";
+  25          uchar code first_day[6] = "³õÊ®Ø¥";
+  26          uchar code second_day[20] = "Ò»¶þÈþËÄÎåÁùÆß°Ë¾ÅÊ®";
+  27          uchar code Solarterms[96] = "Ð¡º®´óº®Á¢´ºÓêË®¾ªÕÝ´º·ÖÇåÃ÷¹ÈÓêÁ¢ÏÄÐ¡ÂúÃ¢ÖÖÏÄÖÁÐ¡Êî´óÊîÁ¢Çï´¦Êî°×Â¶Çï·Öº®Â¶Ë
+             -ª½µÁ¢¶¬Ð¡Ñ©´óÑ©¶¬ÖÁ";
+  28          uchar code WeekDays[14] = "Ò»¶þÈþËÄÎåÁùÈÕ";
+  29          
+  30          void main()
+  31          {
+  32   1        // ³õÊ¼»¯À¶ÑÀ
+  33   1        Uart_Init_blue();
+  34   1        // ³õÊ¼»¯ÆÁÄ»
+  35   1        Lcm_Init();
+  36   1        // ³õÊ¼»¯Ê±ÖÓ
+  37   1        Ds1302Init();
+  38   1        
+  39   1        while(1)
+  40   1          {
+  41   2            // ±äÁ¿ÉùÃ÷
+  42   2            uchar key;// ÓÃÀ´´æ´¢¼üÖµ
+  43   2            uchar clockvo[16] = "                ";// ÓÃÀ´ÔÝ´æ°´ÏÂsw4³öÏÖµÄ16Î»ÄÖÖÓÊ±¼ä×Ö·û´®
+  44   2            
+  45   2            // »ñµÃdisplaydata1ºÍ2£¬ÓÃdisplaydataÔÚµÚÒ»ÐÐµÚ¶þÐÐÏÔÊ¾
+  46   2            dataProcess();
+  47   2            Display_String(1, displayData);
+  48   2            Display_String(2, displayData2);
+  49   2            
+  50   2            // dht11ÏÔÊ¾
+  51   2            Display_String(3, DHT11_receive());
+  52   2            
+  53   2            // Õ¼Î»
+C51 COMPILER V9.54   MAIN                                                                  07/05/2024 16:37:32 PAGE 2   
+
+  54   2            
+  55   2            Display_String(4,"KS CALENDAR 2024");
+  56   2            
+  57   2            // °´¼ü¼ì²â
+  58   2            key = key_scan();
+  59   2            
+  60   2            if (key == 1)
+  61   2            {
+  62   3              // ÕÙ»½²Ëµ¥
+  63   3              callMenu();
+  64   3            }
+  65   2            else if (key == 2)
+  66   2            {
+  67   3              SendData(0x0a);
+  68   3              SendData(0x01);
+  69   3              SendData(0x05);
+  70   3              SendData(0x0c);
+  71   3              SendData(0x0a);
+  72   3              SendData(song);
+  73   3              SendData(0x0b);
+  74   3            }
+  75   2            else if (key == 3)
+  76   2            {
+  77   3              SendData(0x0a);
+  78   3              SendData(0x13);
+  79   3              SendData(0x0b);
+  80   3            }
+  81   2            else if (key == 4)
+  82   2            {
+  83   3              
+  84   3              Lcm_Init();
+  85   3              while(1)
+  86   3              {
+  87   4                uchar key;
+  88   4                clockvo[0] = clocktime[2] / 16 + '0';
+  89   4                clockvo[1] = clocktime[2] % 16 + '0';
+  90   4                clockvo[2] = ':';
+  91   4                clockvo[3] = clocktime[1] / 16 + '0';
+  92   4                clockvo[4] = clocktime[1] % 16 + '0';
+  93   4                clockvo[5] = ':';
+  94   4                clockvo[6] = clocktime[0] / 16 + '0';
+  95   4                clockvo[7] = clocktime[0] % 16 + '0';
+  96   4                Display_String(1, "ÄÖÖÓÊ±¼ä:       ");
+  97   4                Display_String(2, clockvo);
+  98   4                Display_String(4, "°´ÏÂ K4 ·µ»ØÖ÷Ò³");
+  99   4                key = key_scan();
+ 100   4                if (key == 4)
+ 101   4                {
+ 102   5                  break;
+ 103   5                }
+ 104   4              }
+ 105   3            }
+ 106   2                  ////ÄÖÖÓÊ±¼ä¼ì²â
+ 107   2            
+ 108   2            if(alarmDetect())
+ 109   2            {
+ 110   3              SendData(0x0a);
+ 111   3              SendData(0x01);
+ 112   3              SendData(0x05);
+ 113   3              SendData(0x0c);//Ìá¸ßÒôÁ¿
+ 114   3              SendData(0x0a);
+ 115   3              SendData(song);
+C51 COMPILER V9.54   MAIN                                                                  07/05/2024 16:37:32 PAGE 3   
+
+ 116   3              SendData(0x0b);
+ 117   3              while(1)
+ 118   3                {
+ 119   4                  Display_String(1, "    ÄÖÖÓÌáÐÑ    ");
+ 120   4                  Display_String(2, "!!!!!!!!!!!!!!!!");
+ 121   4                  Display_String(3, "!!!!!!!!!!!!!!!!");
+ 122   4                  Display_String(4, "°´ÏÂ K4 ·µ»ØÖ÷Ò³");
+ 123   4                  key = key_scan();
+ 124   4                  if(key == 4)
+ 125   4                  {
+ 126   5                    SendData(0x0a);
+ 127   5                    SendData(0x13);
+ 128   5                    SendData(0x0b);
+ 129   5                    break;
+ 130   5                  }
+ 131   4                }
+ 132   3            }
+ 133   2                  if(MQ2 == 0)
+ 134   2            {
+ 135   3              Delay5Ms();
+ 136   3              if(MQ2 == 0)
+ 137   3              {
+ 138   4                SendData(0x0a);
+ 139   4                SendData(0x07);
+ 140   4                SendData(0x0b);
+ 141   4                PostChar(0x01);
+ 142   4                Lcm_Init();
+ 143   4                while(1)
+ 144   4                {
+ 145   5                  Display_String(1, "  ¾¯±¨!!¾¯±¨!!  ");
+ 146   5                  Display_String(2, "  ÒÉËÆ»ðÔÖ!!    ");
+ 147   5                  Display_String(3, "  °´ÏÂSW1 ¼ü¼ÌÐø");
+ 148   5                  key = key_scan();
+ 149   5                  if(key == 1)
+ 150   5                  {
+ 151   6                    SendData(0x0a);
+ 152   6                    SendData(0x13);
+ 153   6                    SendData(0x0b);
+ 154   6                    break;
+ 155   6                  }
+ 156   5                }
+ 157   4              }
+ 158   3            }
+ 159   2          }
+ 160   1      }
+ 161          void Basic(void)
+ 162          {
+ 163   1        uchar key, i;
+ 164   1        uint year_t;
+ 165   1        uchar month_t, day_t;
+ 166   1        uchar TianGan_t, DiZhi_t;
+ 167   1        uchar lunar[2];
+ 168   1        uchar lunarinfo[16] = "                ";
+ 169   1        uchar month[2] = "ÔÂ";
+ 170   1        uchar result;
+ 171   1        uchar weekday;
+ 172   1        uchar weekinfo[16] = "                ";
+ 173   1        uchar week[2] = "ÖÜ";
+ 174   1        uchar threee[2] = "Èþ";
+ 175   1        uchar ten[2] = "Ê®";
+ 176   1        Lcm_Init();
+ 177   1        
+C51 COMPILER V9.54   MAIN                                                                  07/05/2024 16:37:32 PAGE 4   
+
+ 178   1        while(1)
+ 179   1        {
+ 180   2          //dataprocess ÓÃÓÚ¶ÁÈ¡TIMEºÍÉú³Édisplaydata
+ 181   2          dataProcess();
+ 182   2          year_t = 2000 + TIME[6] / 16 * 10 + TIME[6] % 16;
+ 183   2          month_t = TIME[4] / 16 * 10 + TIME[4] % 16;
+ 184   2          day_t = TIME[3] / 16 * 10 + TIME[3] % 16;
+ 185   2          
+ 186   2          TianGan_t = (year_t - 3) % 10;
+ 187   2          DiZhi_t = (year_t - 3) % 12;
+ 188   2          
+ 189   2          if(TianGan_t==0)TianGan_t=10;
+ 190   2          if(DiZhi_t==0)DiZhi_t=12;
+ 191   2          
+ 192   2          turn_lunar_calendar(year_t, month_t, day_t, lunar);
+ 193   2          result = judgeSolar(year_t, month_t, day_t);
+ 194   2          weekday = calculateWeekDay(year_t, month_t, day_t);
+ 195   2              for (i=0; i<2; i++) 
+ 196   2              {
+ 197   3                  weekinfo[i] = week[i];
+ 198   3                  weekinfo[i+2] = WeekDays[2*(weekday-1)+2+i];
+ 199   3              }
+ 200   2      
+ 201   2          for (i=0; i<2; i++)
+ 202   2          {
+ 203   3            lunarinfo[i] = TianGan[2 * (TianGan_t - 1) + i];//Ìì¸É
+ 204   3            lunarinfo[i + 2] = DiZhi[2 * (DiZhi_t - 1) + i];//µØÖ§
+ 205   3            lunarinfo[i + 4] = month_lunar[2 * (lunar[0] - 1) + i-1];//ÔÂÊý
+ 206   3            lunarinfo[i + 6] = month[i];//¡°ÔÂ¡±
+ 207   3            if(lunar[1] <= 10)
+ 208   3            {
+ 209   4              lunarinfo[i + 8] = first_day[i];//³õÊ®Ø¥
+ 210   4              lunarinfo[i + 10] = second_day[2 * (lunar[1] - 1) + i];//1-10
+ 211   4            }
+ 212   3            else if(lunar[1] <= 19)
+ 213   3            {
+ 214   4              lunarinfo[i + 8] = first_day[i + 2];//³õÊ®Ø¥
+ 215   4              lunarinfo[i + 10] = second_day[2 * (lunar[1] - 10 - 1) + i];//1-10
+ 216   4            }
+ 217   3            else if(lunar[1] <= 29)
+ 218   3            {
+ 219   4              lunarinfo[i + 8] = first_day[i + 4];//³õÊ®Ø¥
+ 220   4              lunarinfo[i + 10] = second_day[2 * (lunar[1] - 20 - 1) + i];//1-10
+ 221   4            }   
+ 222   3            else if(lunar[1] == 30)
+ 223   3            {
+ 224   4              lunarinfo[i + 8] = threee[i];//ÈþÊ®
+ 225   4              lunarinfo[i + 10] = ten[i];
+ 226   4            }     
+ 227   3          }
+ 228   2          if(result)
+ 229   2          {
+ 230   3            lunarinfo[12] = Solarterms[4 * result];
+ 231   3            lunarinfo[13] = Solarterms[4 * result + 1];
+ 232   3            lunarinfo[14] = Solarterms[4 * result + 2];
+ 233   3            lunarinfo[15] = Solarterms[4 * result + 3];
+ 234   3          }
+ 235   2          else
+ 236   2          {
+ 237   3            lunarinfo[12] = ' ';
+ 238   3            lunarinfo[13] = ' ';
+ 239   3            lunarinfo[14] = ' ';
+C51 COMPILER V9.54   MAIN                                                                  07/05/2024 16:37:32 PAGE 5   
+
+ 240   3            lunarinfo[15] = ' ';
+ 241   3          }
+ 242   2          
+ 243   2          Display_String(1, displayData);
+ 244   2          Display_String(2, displayData2);
+ 245   2          Display_String(3, lunarinfo);
+ 246   2          Display_String(4, weekinfo);
+ 247   2          
+ 248   2          key = key_scan();
+ 249   2          if(key == 4)
+ 250   2          {
+ 251   3            return;
+ 252   3          }
+ 253   2        }
+ 254   1        
+ 255   1      }
+ 256          
+ 257          uchar calculateWeekDay(uint year, uchar month, uchar day)
+ 258          {
+ 259   1          uint century;
+ 260   1          uint yearInCentury;
+ 261   1          uchar weekday;
+ 262   1          
+ 263   1      
+ 264   1          if (month == 1 || month == 2)
+ 265   1          {
+ 266   2              month += 12;
+ 267   2              year--;
+ 268   2          }
+ 269   1          
+ 270   1          century = year / 100;
+ 271   1          yearInCentury = year % 100;
+ 272   1          
+ 273   1      
+ 274   1          weekday = (day + 2 * month + 3 * (month + 1) / 5 + yearInCentury + yearInCentury / 4 + century / 4 - 2
+             - * century) % 7;
+ 275   1          
+ 276   1      
+ 277   1          if (weekday < 0) 
+ 278   1          {
+ 279   2              weekday += 7;
+ 280   2          }
+ 281   1          
+ 282   1          return weekday;
+ 283   1      }
+ 284          
+ 285          
+ 286          
+ 287          void callMenu()
+ 288          {
+ 289   1        uchar flag = 1;
+ 290   1        uchar test = 0x01;
+ 291   1        uchar key0;
+ 292   1        Lcm_Init();
+ 293   1        while(1)
+ 294   1        {
+ 295   2          Delay30us();
+ 296   2          key0 = key_scan();
+ 297   2          if (key0 == 1)
+ 298   2          {
+ 299   3            if (flag == 1)
+ 300   3            {
+C51 COMPILER V9.54   MAIN                                                                  07/05/2024 16:37:32 PAGE 6   
+
+ 301   4            }
+ 302   3            else if (flag == 2)
+ 303   3            {
+ 304   4              Basic();
+ 305   4            }
+ 306   3            else if (flag == 3)
+ 307   3            {
+ 308   4              dataChange();
+ 309   4            }
+ 310   3            else if (flag == 4)
+ 311   3            {
+ 312   4              setClock();
+ 313   4            }
+ 314   3            else if (flag == 5)
+ 315   3            {
+ 316   4              Musicselect();
+ 317   4            }
+ 318   3            else if (flag == 6)
+ 319   3            {
+ 320   4              getweather();
+ 321   4            }
+ 322   3            else if (flag == 7)
+ 323   3            {
+ 324   4              control();
+ 325   4            }
+ 326   3            else if (flag == 8)
+ 327   3            {
+ 328   4              return;
+ 329   4            }
+ 330   3            else
+ 331   3            {
+ 332   4            }
+ 333   3          }
+ 334   2          else if (key0 == 2)
+ 335   2          {
+ 336   3            flag++;
+ 337   3            if (flag == 9)flag = 1;
+ 338   3          }
+ 339   2          else if (key0 == 3)
+ 340   2          {
+ 341   3            break;
+ 342   3          }
+ 343   2          if (flag == 1)
+ 344   2          {
+ 345   3            Display_String(1, "K2Ñ¡ÖÐ    K1½øÈë");
+ 346   3            Display_String(2, "1.»ù´¡ÏÔÊ¾      ");
+ 347   3            Display_String(3, "2.ÐÞ¸ÄÊ±¼ä      ");
+ 348   3            Display_String(4, "3.ÉèÖÃÄÖÖÓ      ");
+ 349   3          }
+ 350   2          else if (flag == 2)
+ 351   2          {
+ 352   3            Display_String(1, "K2Ñ¡ÖÐ    K1½øÈë");
+ 353   3            Display_String(2, "1.»ù´¡ÏÔÊ¾    Ñ¡");
+ 354   3            Display_String(3, "2.ÐÞ¸ÄÊ±¼ä      ");
+ 355   3            Display_String(4, "3.ÉèÖÃÄÖÖÓ      ");
+ 356   3          }
+ 357   2          else if (flag == 3)
+ 358   2          {
+ 359   3            Display_String(1, "K2Ñ¡ÖÐ    K1½øÈë");
+ 360   3            Display_String(2, "1.»ù´¡ÏÔÊ¾      ");
+ 361   3            Display_String(3, "2.ÐÞ¸ÄÊ±¼ä    Ñ¡");
+ 362   3            Display_String(4, "3.ÉèÖÃÄÖÖÓ      ");
+C51 COMPILER V9.54   MAIN                                                                  07/05/2024 16:37:32 PAGE 7   
+
+ 363   3          }
+ 364   2          else if (flag == 4)
+ 365   2          {
+ 366   3            Display_String(1, "K2Ñ¡ÖÐ    K1½øÈë");
+ 367   3            Display_String(2, "1.»ù´¡ÏÔÊ¾      ");
+ 368   3            Display_String(3, "2.ÐÞ¸ÄÊ±¼ä      ");
+ 369   3            Display_String(4, "3.ÉèÖÃÄÖÖÓ    Ñ¡");
+ 370   3          }
+ 371   2          else if (flag == 5)
+ 372   2          {
+ 373   3            Display_String(1, "1.»ù´¡ÏÔÊ¾      ");
+ 374   3            Display_String(2, "2.ÐÞ¸ÄÊ±¼ä      ");
+ 375   3            Display_String(3, "3.ÉèÖÃÄÖÖÓ      ");
+ 376   3            Display_String(4, "4.ÉèÖÃÁåÉù    Ñ¡");
+ 377   3          }
+ 378   2          else if (flag == 6)
+ 379   2          {
+ 380   3            Display_String(1, "2.ÐÞ¸ÄÊ±¼ä      ");
+ 381   3            Display_String(2, "3.ÉèÖÃÄÖÖÓ      ");
+ 382   3            Display_String(3, "4.ÉèÖÃÁåÉù      ");
+ 383   3            Display_String(4, "5.»ñÈ¡ÌìÆø    Ñ¡");
+ 384   3          }
+ 385   2          else if (flag == 7)
+ 386   2          {
+ 387   3            Display_String(1, "3.ÉèÖÃÄÖÖÓ      ");
+ 388   3            Display_String(2, "4.ÉèÖÃÁåÉù      ");
+ 389   3            Display_String(3, "5.»ñÈ¡ÌìÆø      ");
+ 390   3            Display_String(4, "6.ÊÂÏîÌáÐÑ    Ñ¡");
+ 391   3          }
+ 392   2          else if (flag == 8)
+ 393   2          {
+ 394   3            Display_String(1, "4.ÉèÖÃÁåÉù      ");
+ 395   3            Display_String(2, "5.»ñÈ¡ÌìÆø      ");
+ 396   3            Display_String(3, "6.ÊÂÏîÌáÐÑ      ");
+ 397   3            Display_String(4, "7.·µ»Ø        Ñ¡");
+ 398   3          }
+ 399   2        }
+ 400   1      }
+ 401          
+ 402          void getweather()
+ 403          {
+ 404   1        uchar key;
+ 405   1        Lcm_Init();
+ 406   1        while(1)
+ 407   1        {
+ 408   2          Display_String(1, "ÇëÁ¬½ÓÊÖ»úApp   ");
+ 409   2          if(weather == 25)
+ 410   2          {
+ 411   3            Display_String(3, "ÇçÀÊÌìÆø        ");
+ 412   3          }
+ 413   2          else if(weather == 26)
+ 414   2          {
+ 415   3            Display_String(3, "¶àÔÆÌìÆø        ");
+ 416   3          }
+ 417   2          else if(weather == 27)
+ 418   2          {
+ 419   3            Display_String(3, "ÉÙÔÆÌìÆø        ");
+ 420   3          }
+ 421   2          else if(weather == 28)
+ 422   2          {
+ 423   3            Display_String(3, "Çç¼ä¶àÔÆ        ");
+ 424   3          }
+C51 COMPILER V9.54   MAIN                                                                  07/05/2024 16:37:32 PAGE 8   
+
+ 425   2          else if(weather == 29)
+ 426   2          {
+ 427   3            Display_String(3, "ÒõÌì  ÄÏ·ç      ");
+ 428   3          }
+ 429   2          else if(weather == 30)
+ 430   2          {
+ 431   3            Display_String(3, "ÕóÓê            ");
+ 432   3          }
+ 433   2          else if(weather == 31)
+ 434   2          {
+ 435   3            Display_String(3, "Ç¿ÕóÓê          ");
+ 436   3          }
+ 437   2          else if(weather == 32)
+ 438   2          {
+ 439   3            Display_String(3, "À×ÕóÓê          ");
+ 440   3          }
+ 441   2          else if(weather == 33)
+ 442   2          {
+ 443   3            Display_String(3, "Ç¿À×ÕóÓê        ");
+ 444   3          }
+ 445   2          else if(weather == 34)
+ 446   2          {
+ 447   3            Display_String(3, "Ð¡Óê            ");
+ 448   3          }
+ 449   2          else if(weather == 35)
+ 450   2          {
+ 451   3            Display_String(3, "ÖÐÓê            ");
+ 452   3          }
+ 453   2          else if(weather == 36)
+ 454   2          {
+ 455   3            Display_String(3, "´óÓê            ");
+ 456   3          }
+ 457   2          else if(weather == 37)
+ 458   2          {
+ 459   3            Display_String(3, "±©Óê            ");
+ 460   3          }
+ 461   2          else if(weather == 38)
+ 462   2          {
+ 463   3            Display_String(3, "´ó±©Óê          ");
+ 464   3          }
+ 465   2          else if(weather == 39)
+ 466   2          {
+ 467   3            Display_String(3, "  Óê            ");
+ 468   3          }
+ 469   2          else if(weather == 50)
+ 470   2          {
+ 471   3            Display_String(3, "  Éú            ");
+ 472   3          }
+ 473   2          else
+ 474   2          {
+ 475   3          }
+ 476   2          key = key_scan();
+ 477   2          if(key == 4)
+ 478   2          {
+ 479   3            return;
+ 480   3          }
+ 481   2        }
+ 482   1      }
+ 483          
+ 484          void control()
+ 485          {
+ 486   1        uchar key;
+C51 COMPILER V9.54   MAIN                                                                  07/05/2024 16:37:32 PAGE 9   
+
+ 487   1        Lcm_Init();
+ 488   1        while(1)
+ 489   1        {
+ 490   2          Display_String(1, "    ÊÂÏîÌáÐÑ    ");
+ 491   2          if(weather == 50)
+ 492   2          {
+ 493   3          Display_String(3, "    ÉúÈÕÌáÐÑ    ");
+ 494   3          }
+ 495   2          else if(weather == 51)
+ 496   2          {
+ 497   3          Display_String(3, "    »áÒéÌáÐÑ    ");
+ 498   3          }
+ 499   2          else if(weather == 52)
+ 500   2          {
+ 501   3          Display_String(3, "  ×÷Òµ½ØÖ¹ÌáÐÑ  ");
+ 502   3          }
+ 503   2          else if(weather == 53)
+ 504   2          {
+ 505   3          Display_String(3, "    ÊµÑéÌáÐÑ    ");
+ 506   3          }
+ 507   2          key = key_scan();
+ 508   2          if(key == 4)
+ 509   2          {
+ 510   3            return;
+ 511   3          }
+ 512   2        }
+ 513   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2125    ----
+   CONSTANT SIZE    =   1008    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----      74
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
