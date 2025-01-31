@@ -1,9 +1,10 @@
 # Electronic Music Perpetual Calendar 🕰️📅
 ## 外观展示⏰
-#### 外观图🚀🚀🚀
-![产品效果图](report_images/wps_doc_11.png){: style="display:block; margin:auto; width:50%;"}
-#### 内部电路图⚡️⚡️⚡️
-![产品效果图](report_images/wps_doc_12.png){: style="display:block; margin:auto; width:50%;"}
+
+<div align=center>
+<img src="report_images/wps_doc_11.png" width="50%"><img src="report_images/wps_doc_12.png" width="50%"> 
+</div>
+
 欢迎来到 Electronic Music Perpetual Calendar 项目！本项目基于 [Smart-Calendar-Clock](https://github.com/genglinWang/Smart-Calendar-Clock) 进行了全面优化与功能扩展，打造了一款融合物联网与智能交互的创新硬件产品。
 
 > 📜 本项目为山东大学信息学院《开放性创新实践Ⅰ—硬件》课程成果
@@ -31,19 +32,29 @@
 - JQ8900音乐芯片支持6首闹铃可选  
 - MIT App Inventor开发跨平台控制APP  
 
-![功能展示](report_images/function_show.gif){: style="display:block; margin:auto; width:60%;"}
+<div align=center>
+<img src="report_images/function_show.gif" width="60%"> 
+</div>
 
 ## 硬件架构 📐
 ### 原理图
-![原理图](report_images/wps_doc_2.png){: style="display:block; margin:auto; width:100%;"}
+
+<div align=center>
+<img src="report_images/wps_doc_2.png" width="80%"> 
+</div>
 
 ### 3D打印效果图
-![原理图](report_images/wps_doc_9.jpeg){: style="display:block; margin:auto; width:50%;"}
+
+<div align=center>
+<img src="report_images/wps_doc_9.jpeg" width="50%"> 
+</div>
 
 ### PCB设计效果图
-![原理图](report_images/wps_doc_4.png){: style="display:block; margin:auto; width:50%;"}
 
-![原理图](report_images/wps_doc_5.png){: style="display:block; margin:auto; width:50%;"}
+<div align=center>
+<img src="report_images/wps_doc_4.png" width="50%"><img src="report_images/wps_doc_5.png" width="50%">
+</div>
+
 ### 核心模块清单
 | 模块 | 型号 | 特性 |
 |------|------|------|
@@ -56,7 +67,10 @@
 
 
 ### PCB进化史
-![PCB对比图](report_images/pcb_compare.png) <!-- 需替换为两版PCB对比图 -->
+<div align=center>
+<img src="report_images/pcb_compare.png" width="80%"> 
+</div>
+
 - **V1痛点**：WIFI/蓝牙冲突 | 布局冗余 | 供电不稳  
 - **V2突破**：精简模块位置 | 背焊式按键设计 | 与3D打印结合
 
